@@ -65,16 +65,16 @@ If you have multiple profiles under one account you will need to specify either 
         if resp2.status_code not in self._success_status_codes:
             raise Exception(f"Login 2 failed with status code {resp2.status_code}!\n{resp2.text}\n{resp2}")
         
-        self.getStudentSelectorId()
+        self._getStudentSelectorId()
         
-    def getStudentSelectorId(self):
+    def _getStudentSelectorId(self):
         resp3 = self._session.get(url=self._urls["home"])
         if resp3.status_code not in self._success_status_codes:
             raise Exception(f"Login 3 failed with status code {resp3.status_code}!\n{resp3.text}\n{resp3}")
         resp3S = BeautifulSoup(resp3.text, "lxml")
         script = resp3S.select_one(".student-selector > script:nth-child(2)")
-        self.studentSelectorData = list(str(script).split("student_selector_data = ")[1].split(";")[0])
-        self.studentSelectorId = str(script).split("student_selector_value = ")[1].split(";")[0]
+        self._studentSelectorData = list(str(script).split("student_selector_data = ")[1].split(";")[0])
+        self._student_selector_id = str(script).split("student_selector_value = ")[1].split(";")[0]
 
         
     def fetch_diary(self, date):
