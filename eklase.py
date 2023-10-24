@@ -94,6 +94,14 @@ If you have multiple profiles under one account you will need to specify either 
             
             day = Day()
             
+            no_data = bool(day_lessons.select("tr > td.no-data"))
+            
+            day.no_data = no_data
+            
+            if no_data:
+                diary.days.append(day)
+                continue
+            
             day.set_date(date.text.split()[0])
             
             # Repeat for each lesson that day
@@ -200,6 +208,7 @@ class Day(Expandable):
     def __init__(self):
         self.lessons = []
         self.entries = []
+        self.no_data = True
         
     def set_date(self, date_string, date_format = "%d.%m.%y."):
         date = datetime.strptime(date_string, date_format)
