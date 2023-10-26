@@ -113,8 +113,22 @@ class Scraper:
 
         return profiles
 
-    def fetch_diary(self, date):
-        r = self._session.get(url=self._urls["diary"], params={"Date": date})
+    def fetch_diary(self, week_date: str | datetime) -> Diary:
+        """Fetches the diary for a given week
+
+        Args:
+            week_date (str | datetime): Date of any day in the week. Must be in the e-klase.lv format "%d.%m.%Y." or datetime.datetime object.
+
+        Returns:
+            Diary: Returns a Diary object
+        """
+        # Handle datetime.datetime and string formats
+        if isinstance(week_date, datetime):
+            date_str = week_date.strftime("%d.%m.%Y.")
+        else:
+            date_str = week_date
+
+        r = self._session.get(url=self._urls["diary"], params={"Date": date_str})
         html = r.text
 
         S = BeautifulSoup(html, "lxml")
