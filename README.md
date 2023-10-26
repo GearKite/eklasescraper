@@ -2,7 +2,7 @@
 
 Can be used to access e-klase.lv programmatically
 
-## Usage
+## Example
 
     import eklasescraper.eklase
 
