@@ -6,15 +6,24 @@ import json
 
 
 class Scraper:
-    def __init__(
-        self,
-        headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0"
-        },
-        cookies=None,
-    ) -> None:
-        self._session = requests.Session()
-        self._session.headers.update(headers)
+    """e-klase.lv scraper"""
+
+    def __init__(self, session: requests.Session = None) -> None:
+        """Initialize the scraper
+
+        Args:
+            session (requests.Session, optional): Requests session with your parameters. Creates new session if not specified.
+        """
+        if not session:
+            session = requests.Session()
+            session.headers.update(
+                {
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0"
+                }
+            )
+
+        self._session = session
+
         self._success_status_codes = [200, 302]
         self._urls = {
             "base": "https://my.e-klase.lv",
@@ -34,7 +43,7 @@ class Scraper:
         organization_id: str = None,
         profile_index: int = 0,
     ):
-        """Sets the cookies for access. Use the username and password of your account.
+        """Logs in to your account and selects a profile
 
         If you have multiple profiles under one account you will want to specify profile_id and organization_id or the index of the profile.
         """
@@ -66,6 +75,11 @@ class Scraper:
             )
 
     def fetch_profiles(self):
+        """Fetches the available profiles
+
+        Returns:
+            profiles (ExpandableList): List of available profiles (StudentProfile)
+        """
         r = self._session.get(url=self._urls["profile_selector"])
         html = r.text
 
