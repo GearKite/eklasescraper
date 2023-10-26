@@ -20,11 +20,12 @@ class Scraper:
             
         }
     
-    def login(self, username:str, password:str, profile_id:str=None, organization_id:str=None, profileIndex:int=1):
+    def login(self, username:str, password:str, profile_id:str=None, organization_id:str=None, profile_index:int=0):
         """Sets the cookies for access. Use the username and password of your account.
         
-If you have multiple profiles under one account you will need to specify either {profile_id and organization_id} or {profileIndex}.
+            If you have multiple profiles under one account you will want to specify profile_id and organization_id or the index of the profile.
         """
+        
         data = {
             "UserName": username,
             "Password": password,
@@ -33,30 +34,20 @@ If you have multiple profiles under one account you will need to specify either 
         resp = self._session.post(url=self._urls["login"], data=data)
         if resp.status_code not in self._success_status_codes:
             raise Exception(f"Login 1 failed with status code {resp.status_code}!\n{resp.text}\n{resp}")
-        respS = BeautifulSoup(resp.text, "lxml")
-        if not profile_id or not organization_id:
-            try: # Check if there is no need to manually enter an id
-                self._organization_id = respS.select_one("#frmTest > input:nth-child(1)")["value"]
-                self._profile_id = respS.select_one("#frmTest > input:nth-child(2)")["value"]
-            except Exception as e:
-                profiles = {}
-                index = 0
-                for button in respS.select("button[name=pf_id]"):
-                    profiles[index] = {
-                        "name": button.parent.parent.text.strip(),
-                        "profile_id": str(button["data-pf_id"]),
-                        "organization_id": str(button["data-tenantid"])
-                    }
-                    index += 1
-                if profileIndex is not None:
-                    self._profile_id = profiles[profileIndex]["profile_id"]
-                    self._organization_id = profiles[profileIndex]["organization_id"]
-                else:
-                    print(json.dumps(profiles, indent=4))
-                    print(f"Multiple profiles are available. Pass in pfId and organization_id.")
-                    raise e
+        
+        if profile_id is None and organization_id is None:
+            # Use profile_index for selecting the profile
+            self._profiles = self.fetch_profiles()
             
+            self._profile_id = self._profiles[profile_index].profile_id
+            self._organization_id = self._profiles[profile_index].organization_id
+        else:
+            self._profile_id = profile_id
+            self._organization_id = organization_id
             
+        
+        # Select profile with profile_id and organization_id
+
         data2 = {
             "TenantId": self._organization_id,
             "pf_id": self._profile_id
@@ -64,19 +55,30 @@ If you have multiple profiles under one account you will need to specify either 
         resp2 = self._session.post(url=self._urls["switcher"], data=data2)
         if resp2.status_code not in self._success_status_codes:
             raise Exception(f"Login 2 failed with status code {resp2.status_code}!\n{resp2.text}\n{resp2}")
+            
+    def fetch_profiles(self):
+        r = self._session.get(url = self._urls["profile_selector"])
+        html = r.text
         
-        self._getStudentSelectorId()
+        S = BeautifulSoup(html, 'lxml')
         
-    def _getStudentSelectorId(self):
-        resp3 = self._session.get(url=self._urls["home"])
-        if resp3.status_code not in self._success_status_codes:
-            raise Exception(f"Login 3 failed with status code {resp3.status_code}!\n{resp3.text}\n{resp3}")
-        resp3S = BeautifulSoup(resp3.text, "lxml")
-        script = resp3S.select_one(".student-selector > script:nth-child(2)")
-        self._studentSelectorData = list(str(script).split("student_selector_data = ")[1].split(";")[0])
-        self._student_selector_id = str(script).split("student_selector_value = ")[1].split(";")[0]
+        select_panels = S.select("div.modal-options-item.student-item")
+        
+        profiles = ExpandableList()
+        
+        for panel in select_panels:
+            button = panel.select_one("button.btn-switch-student")
+            
+            profiles.append(StudentProfile(
+                name = panel.select_one("div.modal-options-title > span").text,
+                subtitle = panel.select_one("div.modal-options-choice > small").text,
+                profile_id = button["data-pf_id"],
+                organization_id = button["data-tenantid"],
+            ))
+            
+        return profiles
+            
 
-        
     def fetch_diary(self, date):
         r = self._session.get(url=self._urls["diary"], params={"Date": date})
         html = r.text
@@ -253,7 +255,7 @@ class Lesson(Expandable):
         
 class StudentProfile(Expandable):
     def __init__(self, name, subtitle, profile_id, organization_id):
-        self.name = name
-        self.subtitle = subtitle
+        self.name = _clean_text(name)
+        self.subtitle = _clean_text(subtitle)
         self.profile_id = profile_id
         self.organization_id = organization_id
