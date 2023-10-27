@@ -11,7 +11,7 @@ Can be used to access e-klase.lv programmatically
     eklase.login("peterisi", "parole123")
 
     # Fetch diary
-    diary = eklase.fetch_diary("2023-11-01")
-        
+    diary = eklase.fetch_diary("01.11.2023.")
+
     # Fetch timetable
     lesson_times_list = eklase.fetch_lesson_times()
